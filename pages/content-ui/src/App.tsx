@@ -6,10 +6,10 @@ function App() {
   useEffect(() => {
     // Function to extract thread content
     function extractThreadContent(): string {
-      const posts = document.querySelectorAll('[data-test-id="post-content"]');
+      const comments = document.querySelectorAll('#comment-tree shreddit-comment');
       let content = '';
-      posts.forEach(post => {
-        const text = post.textContent || '';
+      comments.forEach(comment => {
+        const text = comment.textContent || '';
         content += text + '\n';
       });
       return content;
@@ -32,9 +32,15 @@ function App() {
     });
 
     // Observe changes in the posts container
-    const postsContainer = document.querySelector('#2x-container');
+    const postsContainer = document.querySelector('shreddit-post');
     if (postsContainer) {
       observer.observe(postsContainer, { childList: true, subtree: true });
+    }
+
+    // Observe changes in the comments container
+    const commentsContainer = document.querySelector('#comment-tree');
+    if (commentsContainer) {
+      observer.observe(commentsContainer, { childList: true, subtree: true });
     }
 
     // Clean up observer on component unmount
