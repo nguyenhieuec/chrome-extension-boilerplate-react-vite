@@ -1,11 +1,11 @@
 {
   "extensionDescription": {
-    "description": "Extension description",
-    "message": "Chrome extension boilerplate developed with Vite, React and Typescript"
+    "description": "Summarize reddit threads",
+    "message": "Chrome extension using AI to summarize reddit threads."
   },
   "extensionName": {
-    "description": "Extension name",
-    "message": "Chrome extension boilerplate"
+    "description": "Tidder extension",
+    "message": "Tidder a Chrome extension for summarizing reddit threads."
   },
   "toggleTheme": {
     "message": "Toggle theme"
