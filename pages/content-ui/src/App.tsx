@@ -1,52 +1,87 @@
 import { useEffect, useState } from 'react';
 
+interface ThreadData {
+  title: string;
+  author: string;
+  selftext: string;
+  comments: CommentData[];
+  [key: string]: any;
+}
+
+interface CommentData {
+  author: string;
+  body: string;
+  replies: CommentData[];
+  [key: string]: any;
+}
+
+function filterThreadData(rawData: any, keysToKeep: string[]): ThreadData {
+  const thread = rawData[0]?.data?.children[0]?.data;
+
+  const threadData: ThreadData = {
+    title: thread.title,
+    author: thread.author,
+    selftext: thread.selftext,
+    comments: [],
+  };
+
+  function extractComments(commentsArray: any[]): CommentData[] {
+    return commentsArray.map(commentObj => {
+      const comment = commentObj.data;
+      const commentData: CommentData = {
+        author: comment.author,
+        body: comment.body,
+        replies: [],
+      };
+      if (comment.replies && comment.replies.data) {
+        commentData.replies = extractComments(comment.replies.data.children);
+      }
+      return commentData;
+    });
+  }
+
+  const comments = rawData[1]?.data?.children || [];
+  threadData.comments = extractComments(comments);
+
+  // Filter keys if keysToKeep is provided
+  if (keysToKeep && keysToKeep.length > 0) {
+    const filterKeys = (obj: any): any => {
+      return Object.fromEntries(
+        Object.entries(obj)
+          .filter(([key]) => keysToKeep.includes(key))
+          .map(([key, value]) => [
+            key,
+            typeof value === 'object' && value !== null
+              ? Array.isArray(value)
+                ? value.map(filterKeys)
+                : filterKeys(value)
+              : value,
+          ]),
+      );
+    };
+    return filterKeys(threadData);
+  }
+
+  return threadData;
+}
+
 function App() {
   const [summary, setSummary] = useState('Loading summary...');
 
   useEffect(() => {
-    // Function to extract thread content
-    function extractThreadContent(): string {
-      const comments = document.querySelectorAll('#comment-tree shreddit-comment');
-      let content = '';
-      comments.forEach(comment => {
-        const text = comment.textContent || '';
-        content += text + '\n';
-      });
-      return content;
+    async function fetchThreadData() {
+      const threadUrl = window.location.pathname + '.json';
+      const response = await fetch(`https://www.reddit.com${threadUrl}`);
+      const data = await response.json();
+      // could log the raw here.
+
+      const keysToKeep = ['title', 'author', 'selftext', 'comments', 'body', 'score', 'created_utc', 'subreddit'];
+      const filteredData = filterThreadData(data, keysToKeep);
+
+      // You can now use filteredData for summarization
+      console.log(filteredData);
     }
-
-    // Function to summarize the content
-    function summarizeContent(content: string): string {
-      // Simple summarization logic (e.g., first 500 characters)
-      return content.length > 500 ? content.substring(0, 500) + '...' : content;
-    }
-
-    // Initial extraction and summarization
-    const initialContent = extractThreadContent();
-    setSummary(summarizeContent(initialContent));
-
-    // Update summary when new content is loaded
-    const observer = new MutationObserver(() => {
-      const updatedContent = extractThreadContent();
-      setSummary(summarizeContent(updatedContent));
-    });
-
-    // Observe changes in the posts container
-    const postsContainer = document.querySelector('shreddit-post');
-    if (postsContainer) {
-      observer.observe(postsContainer, { childList: true, subtree: true });
-    }
-
-    // Observe changes in the comments container
-    const commentsContainer = document.querySelector('#comment-tree');
-    if (commentsContainer) {
-      observer.observe(commentsContainer, { childList: true, subtree: true });
-    }
-
-    // Clean up observer on component unmount
-    return () => {
-      observer.disconnect();
-    };
+    fetchThreadData();
   }, []);
 
   return (
