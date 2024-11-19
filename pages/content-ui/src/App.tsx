@@ -88,8 +88,18 @@ function App() {
 
   const handleSummarize = () => {
     if (!filteredData) return;
-    // Prepare the content to be summarized
-    const contentToSummarize = JSON.stringify(filteredData);
+
+    // Construct the summary string using the template
+    let summaryStr = `Below is a reddit thread with top comments. Summarize thread with 5-10 bullet points:\n\n`;
+    summaryStr += `Title: ${filteredData.title}\n\nAuthor: ${filteredData.author}\n\nMessage:\n${filteredData.selftext}\n\nTop Comments:\n`;
+    filteredData.comments.forEach(comment => {
+      summaryStr += `- **${comment.author}**: ${comment.body}\n`;
+    });
+
+    setSummary(summaryStr);
+
+    // Use summaryStr for contentToSummarize
+    const contentToSummarize = summaryStr;
     // Encode the content to make it URL-safe
     // const encodedContent = encodeURIComponent(contentToSummarize);
     // Prepare the ChatGPT URL (Note: ChatGPT doesn't support URL prompts directly)
