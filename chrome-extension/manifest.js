@@ -28,7 +28,7 @@ const manifest = deepmerge(
     version: packageJson.version,
     description: '__MSG_extensionDescription__',
     host_permissions: ['<all_urls>'],
-    permissions: ['storage', 'scripting', 'tabs', 'notifications'],
+    permissions: ['storage', 'scripting', 'tabs', 'notifications', 'activeTab'],
     options_page: 'options/index.html',
     background: {
       service_worker: 'background.iife.js',
@@ -46,11 +46,11 @@ const manifest = deepmerge(
     },
     content_scripts: [
       {
-        matches: ['http://*/*', 'https://*/*', '<all_urls>'],
+        matches: ['https://chat.openai.com/*'],
         js: ['content/index.iife.js'],
       },
       {
-        matches: ['http://*/*', 'https://*/*', '<all_urls>'],
+        matches: ['http://www.reddit.com/*', 'https://www.reddit.com/*', '<all_urls>'],
         js: ['content-ui/index.iife.js'],
       },
       {

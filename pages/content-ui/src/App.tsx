@@ -66,7 +66,8 @@ function filterThreadData(rawData: any, keysToKeep: string[]): ThreadData {
 }
 
 function App() {
-  const [summary, setSummary] = useState('Loading summary...');
+  const [summary, setSummary] = useState<string | null>(null);
+  const [filteredData, setFilteredData] = useState<ThreadData | null>(null);
 
   useEffect(() => {
     async function fetchThreadData() {
@@ -80,14 +81,43 @@ function App() {
 
       // You can now use filteredData for summarization
       console.log(filteredData);
+      setFilteredData(filteredData);
     }
     fetchThreadData();
   }, []);
 
+  const handleSummarize = () => {
+    if (!filteredData) return;
+    // Prepare the content to be summarized
+    const contentToSummarize = JSON.stringify(filteredData);
+    // Encode the content to make it URL-safe
+    // const encodedContent = encodeURIComponent(contentToSummarize);
+    // Prepare the ChatGPT URL (Note: ChatGPT doesn't support URL prompts directly)
+    const chatGPTUrl = `https://chat.openai.com/`;
+    // Open the ChatGPT page in a new tab
+    window.open(chatGPTUrl, '_blank');
+    // Optionally, you might display the content for copy-pasting
+    // Or integrate with an API if available
+
+    chrome.tabs.query({ url: chatGPTUrl }, tabs => {
+      if (tabs[0]) {
+        if (tabs[0].id !== undefined) {
+          chrome.tabs.sendMessage(tabs[0].id, { content: contentToSummarize });
+        }
+      }
+    });
+  };
+
   return (
     <div className="p-4 bg-white shadow-md rounded max-w-sm text-sm">
       <h2 className="text-lg font-bold mb-2">Thread Summary</h2>
-      <p>{summary}</p>
+      {summary ? (
+        <p>{summary}</p>
+      ) : (
+        <button onClick={handleSummarize} className="bg-blue-500 text-white px-4 py-2 rounded">
+          Summarize Thread
+        </button>
+      )}
     </div>
   );
 }
