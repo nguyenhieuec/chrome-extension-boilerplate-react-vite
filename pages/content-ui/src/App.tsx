@@ -93,17 +93,15 @@ function App() {
     // Encode the content to make it URL-safe
     // const encodedContent = encodeURIComponent(contentToSummarize);
     // Prepare the ChatGPT URL (Note: ChatGPT doesn't support URL prompts directly)
-    const chatGPTUrl = `https://chat.openai.com/`;
+    // const chatGPTUrl = `https://chat.openai.com/`;
     // Open the ChatGPT page in a new tab
-    window.open(chatGPTUrl, '_blank');
-    // Optionally, you might display the content for copy-pasting
-    // Or integrate with an API if available
-
-    chrome.tabs.query({ url: chatGPTUrl }, tabs => {
-      if (tabs[0]) {
-        if (tabs[0].id !== undefined) {
-          chrome.tabs.sendMessage(tabs[0].id, { content: contentToSummarize });
-        }
+    chrome.runtime.sendMessage({ action: 'openChatGPT', content: contentToSummarize }, response => {
+      if (chrome.runtime.lastError) {
+        console.error('Error:', chrome.runtime.lastError.message);
+      } else if (response?.status === 'success') {
+        console.log('Request to open ChatGPT sent successfully');
+      } else {
+        console.error('Failed to send request to open ChatGPT');
       }
     });
   };
