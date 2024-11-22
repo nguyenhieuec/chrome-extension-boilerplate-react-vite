@@ -1,79 +1,69 @@
+// File: pages/popup/src/Popup.tsx
+
 import '@src/Popup.css';
-import { useStorage, withErrorBoundary, withSuspense } from '@extension/shared';
-import { exampleThemeStorage } from '@extension/storage';
+import { withErrorBoundary, withSuspense } from '@extension/shared';
 import type { ComponentPropsWithoutRef } from 'react';
 
 const notificationOptions = {
   type: 'basic',
   iconUrl: chrome.runtime.getURL('icon-34.png'),
-  title: 'Injecting content script error',
-  message: 'You cannot inject script here!',
+  title: 'Injecting Content Script Error',
+  message: 'Cannot inject script on this page.',
 } as const;
 
 const Popup = () => {
-  const theme = useStorage(exampleThemeStorage);
-  const isLight = theme === 'light';
-  const logo = isLight ? 'popup/logo_vertical.svg' : 'popup/logo_vertical_dark.svg';
-  const goGithubSite = () =>
-    chrome.tabs.create({ url: 'https://github.com/Jonghakseo/chrome-extension-boilerplate-react-vite' });
+  const logo = 'popup/logo_vertical.svg'; // Removed theme-related logic
 
   const injectContentScript = async () => {
     const [tab] = await chrome.tabs.query({ currentWindow: true, active: true });
 
     if (tab.url!.startsWith('about:') || tab.url!.startsWith('chrome:')) {
       chrome.notifications.create('inject-error', notificationOptions);
+      return;
     }
 
-    await chrome.scripting
-      .executeScript({
+    try {
+      await chrome.scripting.executeScript({
         target: { tabId: tab.id! },
         files: ['/content-runtime/index.iife.js'],
-      })
-      .catch(err => {
-        // Handling errors related to other paths
-        if (err.message.includes('Cannot access a chrome:// URL')) {
-          chrome.notifications.create('inject-error', notificationOptions);
-        }
       });
+      console.log('Content script injected successfully.');
+    } catch (err: any) {
+      console.error('Error injecting content script:', err.message);
+      chrome.notifications.create('inject-error', notificationOptions);
+    }
+  };
+
+  const handleSummarize = () => {
+    // Your summarize logic here
+    console.log('Summarize button clicked');
+    // Implement the summarization functionality
   };
 
   return (
-    <div className={`App ${isLight ? 'bg-slate-50' : 'bg-gray-800'}`}>
-      <header className={`App-header ${isLight ? 'text-gray-900' : 'text-gray-100'}`}>
-        <button onClick={goGithubSite}>
-          <img src={chrome.runtime.getURL(logo)} className="App-logo" alt="logo" />
-        </button>
-        <p>
-          Edit <code>pages/popup/src/Popup.tsx</code>
+    <div className="App bg-gray-800 text-gray-100">
+      <header className="App-header text-center p-4">
+        <img src={chrome.runtime.getURL(logo)} className="App-logo" alt="logo" />
+        <h1>Tidder</h1>
+        <p className="description">
+          Tidder is a Chrome extension that leverages AI to summarize Reddit threads, helping you quickly grasp the main
+          points without scrolling through lengthy discussions.
         </p>
-        <button
-          className={
-            'font-bold mt-4 py-1 px-4 rounded shadow hover:scale-105 ' +
-            (isLight ? 'bg-blue-200 text-black' : 'bg-gray-700 text-white')
-          }
-          onClick={injectContentScript}>
-          Click to inject Content Script
+        {/* <button
+          onClick={handleSummarize}
+          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 mt-2"
+        >
+          Summarize Thread
         </button>
-        <ToggleButton>Toggle theme</ToggleButton>
+        <button
+          className="mt-4 py-1 px-4 rounded shadow hover:scale-105 bg-blue-700 text-white"
+          onClick={injectContentScript}
+        >
+          Inject Content Script
+        </button> */}
       </header>
     </div>
   );
 };
 
-const ToggleButton = (props: ComponentPropsWithoutRef<'button'>) => {
-  const theme = useStorage(exampleThemeStorage);
-  return (
-    <button
-      className={
-        props.className +
-        ' ' +
-        'font-bold mt-4 py-1 px-4 rounded shadow hover:scale-105 ' +
-        (theme === 'light' ? 'bg-white text-black shadow-black' : 'bg-black text-white')
-      }
-      onClick={exampleThemeStorage.toggle}>
-      {props.children}
-    </button>
-  );
-};
-
-export default withErrorBoundary(withSuspense(Popup, <div> Loading ... </div>), <div> Error Occur </div>);
+export default withErrorBoundary(withSuspense(Popup, <div>Loading...</div>), <div>An error occurred.</div>);

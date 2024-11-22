@@ -1,30 +1,30 @@
-.App {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  text-align: center;
-  height: 100%;
-  padding: 1rem;
-}
+/* File: pages/popup/src/Popup.css */
 
-.App-logo {
-  height: 50vmin;
-  margin-bottom: 1rem;
+.App {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
 }
 
 .App-header {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-end;
-  font-size: 0.75rem;
+  width: 100%;
+  display: flex;              /* Added */
+  flex-direction: column;     /* Added */
+  align-items: center;        /* Added to center children horizontally */
 }
 
-code {
-  background: rgba(148, 163, 184, 0.5);
-  border-radius: 0.25rem;
-  padding: 0.2rem 0.5rem;
+.App-logo {
+  height: 80px;
+  margin-bottom: 20px;
+}
+
+.description {
+  margin: 1rem 0;
+  font-size: 0.9rem;
+  color: #d1d5db; /* Tailwind's gray-300 */
+}
+
+button {
+  transition: transform 0.2s;
 }
