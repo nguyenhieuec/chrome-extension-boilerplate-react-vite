@@ -51,3 +51,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true; // Keep the message channel open for sendResponse
   }
 });
+
+// Add the onInstalled listener to show a welcome tab once upon installation
+chrome.runtime.onInstalled.addListener(details => {
+  if (details.reason === chrome.runtime.OnInstalledReason.INSTALL) {
+    chrome.tabs.create({ url: 'welcome.html' });
+    console.log('Welcome tab opened after installation');
+  }
+});
