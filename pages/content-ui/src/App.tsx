@@ -1,4 +1,7 @@
+// File: pages/content-ui/src/App.tsx
+
 import { useEffect, useState } from 'react';
+import debounce from 'lodash.debounce'; // Import debounce
 
 interface ThreadData {
   title: string;
@@ -15,8 +18,25 @@ interface CommentData {
   [key: string]: any;
 }
 
+/**
+ * Filters the raw Reddit thread data to include only specific keys.
+ * @param rawData - The raw data fetched from Reddit.
+ * @param keysToKeep - The keys to retain in the filtered data.
+ * @returns The filtered thread data.
+ */
 function filterThreadData(rawData: any, keysToKeep: string[]): ThreadData {
+  console.log('Filtering thread data...');
   const thread = rawData[0]?.data?.children[0]?.data;
+
+  if (!thread) {
+    console.error('Invalid thread data format.');
+    return {
+      title: '',
+      author: '',
+      selftext: '',
+      comments: [],
+    };
+  }
 
   const threadData: ThreadData = {
     title: thread.title,
@@ -25,8 +45,13 @@ function filterThreadData(rawData: any, keysToKeep: string[]): ThreadData {
     comments: [],
   };
 
+  /**
+   * Recursively extracts comments from the Reddit API response.
+   * @param commentsArray - The array of comment objects.
+   * @returns An array of CommentData.
+   */
   function extractComments(commentsArray: any[]): CommentData[] {
-    return commentsArray.map(commentObj => {
+    return commentsArray.map((commentObj: any) => {
       const comment = commentObj.data;
       const commentData: CommentData = {
         author: comment.author,
@@ -66,46 +91,59 @@ function filterThreadData(rawData: any, keysToKeep: string[]): ThreadData {
 }
 
 function App() {
+  console.log('App component mounted');
   const [summary, setSummary] = useState<string | null>(null);
   const [filteredData, setFilteredData] = useState<ThreadData | null>(null);
 
-  useEffect(() => {
-    async function fetchThreadData() {
+  /**
+   * Fetches the current thread data from Reddit.
+   */
+  async function fetchThreadData() {
+    console.log('Fetching thread data...');
+    const isThreadPage = /^\/r\/.+\/comments\/.+/.test(window.location.pathname);
+    if (!isThreadPage) {
+      console.error('Not on a Reddit thread page. Cannot fetch thread data.');
+      return;
+    }
+    try {
       const threadUrl = window.location.pathname + '.json';
       const response = await fetch(`https://www.reddit.com${threadUrl}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
       const data = await response.json();
-      // could log the raw here.
-
       const keysToKeep = ['title', 'author', 'selftext', 'comments', 'body', 'score', 'created_utc', 'subreddit'];
-      const filteredData = filterThreadData(data, keysToKeep);
-
-      // You can now use filteredData for summarization
-      console.log(filteredData);
-      setFilteredData(filteredData);
+      const filtered = filterThreadData(data, keysToKeep);
+      console.log('Filtered Data:', filtered);
+      setFilteredData(filtered);
+    } catch (error) {
+      console.error('Error fetching thread data:', error);
     }
-    fetchThreadData();
-  }, []);
+  }
 
+  /**
+   * Handles the summarization of the thread.
+   */
   const handleSummarize = () => {
-    if (!filteredData) return;
+    console.log('Summarize button clicked');
+    if (!filteredData) {
+      console.error('No filtered data available for summarization.');
+      return;
+    }
 
-    // Construct the summary string using the template
-    let summaryStr = `Below is a reddit thread with top comments. Summarize thread with 5-10 bullet points:\n\n`;
-    summaryStr += `Title: ${filteredData.title}\n\nAuthor: ${filteredData.author}\n\nMessage:\n${filteredData.selftext}\n\nTop Comments:\n`;
+    let summaryStr = `Below is a Reddit thread with top comments. Summarize the thread with 5-10 bullet points:\n\n`;
+    summaryStr += `**Title:** ${filteredData.title}\n\n`;
+    summaryStr += `**Author:** ${filteredData.author}\n\n`;
+    summaryStr += `**Message:**\n${filteredData.selftext}\n\n`;
+    summaryStr += `**Top Comments:**\n`;
     filteredData.comments.forEach(comment => {
       summaryStr += `- **${comment.author}**: ${comment.body}\n`;
     });
 
     setSummary(summaryStr);
 
-    // Use summaryStr for contentToSummarize
-    const contentToSummarize = summaryStr;
-    // Encode the content to make it URL-safe
-    // const encodedContent = encodeURIComponent(contentToSummarize);
-    // Prepare the ChatGPT URL (Note: ChatGPT doesn't support URL prompts directly)
-    // const chatGPTUrl = `https://chat.openai.com/`;
-    // Open the ChatGPT page in a new tab
-    chrome.runtime.sendMessage({ action: 'openChatGPT', content: contentToSummarize }, response => {
+    // Send message to background script to open ChatGPT
+    chrome.runtime.sendMessage({ action: 'openChatGPT', content: summaryStr }, response => {
       if (chrome.runtime.lastError) {
         console.error('Error:', chrome.runtime.lastError.message);
       } else if (response?.status === 'success') {
@@ -116,13 +154,53 @@ function App() {
     });
   };
 
+  /**
+   * Handles URL changes detected by MutationObserver.
+   */
+  const handleUrlChange = debounce(() => {
+    console.log('Detected navigation to:', window.location.pathname);
+    setSummary(null);
+    setFilteredData(null);
+    fetchThreadData();
+  }, 300);
+
+  /**
+   * Sets up a MutationObserver to detect DOM changes indicative of navigation.
+   */
+  useEffect(() => {
+    console.log('Setting up MutationObserver...');
+    let lastUrl = window.location.href;
+
+    const observer = new MutationObserver(() => {
+      const currentUrl = window.location.href;
+      if (currentUrl !== lastUrl) {
+        lastUrl = currentUrl;
+        console.log('URL changed:', currentUrl);
+        handleUrlChange();
+      }
+    });
+
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    // Initial data fetch
+    fetchThreadData();
+
+    return () => {
+      console.log('Disconnecting MutationObserver and cancelling debounce');
+      observer.disconnect();
+      handleUrlChange.cancel();
+    };
+  }, []);
+
   return (
     <div className="p-4 bg-white shadow-md rounded max-w-sm text-sm">
       <h2 className="text-lg font-bold mb-2">Thread Summary</h2>
       {summary ? (
-        <p>{summary}</p>
+        <div>
+          <pre>{summary}</pre>
+        </div>
       ) : (
-        <button onClick={handleSummarize} className="bg-blue-500 text-white px-4 py-2 rounded">
+        <button onClick={handleSummarize} className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
           Summarize Thread
         </button>
       )}
