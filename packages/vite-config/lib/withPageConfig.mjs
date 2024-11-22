@@ -26,7 +26,12 @@ export function withPageConfig(config) {
         plugins: [react(), isDev && watchRebuildPlugin({ refresh: true })],
         build: {
           sourcemap: isDev,
-          minify: isProduction,
+          minify: isDev ? false : 'terser',
+          terserOptions: {
+            compress: {
+              drop_console: true,
+            },
+          },
           reportCompressedSize: isProduction,
           emptyOutDir: isProduction,
           watch: watchOption,
