@@ -21,6 +21,7 @@ function App() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [filteredData, setFilteredData] = useState<ThreadData | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [isDarkMode, setIsDarkMode] = useState(false);
 
   /**
    * Fetches the current thread data from Reddit.
@@ -118,14 +119,31 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    const handleMessage = (message: any) => {
+      if (message.action === 'setDarkMode') {
+        setIsDarkMode(message.isDarkMode);
+      }
+    };
+
+    chrome.runtime.onMessage.addListener(handleMessage);
+
+    return () => {
+      chrome.runtime.onMessage.removeListener(handleMessage);
+    };
+  }, []);
+
   return (
-    <div className="p-4 bg-white shadow-md rounded max-w-sm text-sm">
+    <div
+      className={`p-4 shadow-md rounded max-w-sm text-sm ${isDarkMode ? 'bg-gray-800 text-white' : 'bg-white text-black'}`}>
       <h2 className="text-lg font-bold mb-2">Thread Summary</h2>
       <button
         onClick={handleSummarize}
         disabled={isProcessing}
-        className={`bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 ${
-          isProcessing ? 'opacity-50 cursor-not-allowed' : ''
+        className={`px-4 py-2 rounded ${
+          isDarkMode
+            ? `bg-gray-700 text-white hover:bg-gray-600 ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}`
+            : `bg-blue-500 text-white hover:bg-blue-600 ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}`
         }`}>
         {isProcessing ? 'Summarizing...' : 'Summarize Thread'}
       </button>

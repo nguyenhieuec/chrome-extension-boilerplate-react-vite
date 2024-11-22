@@ -2,7 +2,7 @@
 
 import '@src/Popup.css';
 import { withErrorBoundary, withSuspense } from '@extension/shared';
-import type { ComponentPropsWithoutRef } from 'react';
+import { useState, useEffect } from 'react';
 
 const notificationOptions = {
   type: 'basic',
@@ -13,6 +13,32 @@ const notificationOptions = {
 
 const Popup = () => {
   const logo = 'popup/logo_vertical.svg'; // Removed theme-related logic
+
+  const [isDarkMode, setIsDarkMode] = useState(false);
+
+  useEffect(() => {
+    const detectDarkMode = async () => {
+      try {
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+
+        if (tab.id) {
+          const [result] = await chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            func: () => {
+              return document.documentElement.classList.contains('theme-dark'); // Check for the theme-dark class on the <html> element
+            },
+          });
+
+          setIsDarkMode(!!result.result);
+          chrome.tabs.sendMessage(tab.id, { action: 'setDarkMode', isDarkMode: result.result });
+        }
+      } catch (error) {
+        console.error('Error detecting dark mode:', error);
+      }
+    };
+
+    detectDarkMode();
+  }, []);
 
   const injectContentScript = async () => {
     const [tab] = await chrome.tabs.query({ currentWindow: true, active: true });
