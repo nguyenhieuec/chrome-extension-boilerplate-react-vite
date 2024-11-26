@@ -5,12 +5,12 @@ const packageJson = JSON.parse(fs.readFileSync('../package.json', 'utf8'));
 
 const isFirefox = process.env.__FIREFOX__ === 'true';
 
-const sidePanelConfig = {
-  side_panel: {
-    default_path: 'side-panel/index.html',
-  },
-  permissions: ['sidePanel'],
-};
+// const sidePanelConfig = {
+//   side_panel: {
+//     default_path: 'side-panel/index.html',
+//   },
+//   permissions: ['sidePanel'],
+// };
 
 /**
  * After changing, please reload the extension at `chrome://extensions`
@@ -28,7 +28,7 @@ const manifest = deepmerge(
     version: packageJson.version,
     description: '__MSG_extensionDescription__',
     host_permissions: ['https://www.reddit.com/*', 'https://chat.openai.com/*', 'https://chatgpt.com/*'],
-    permissions: ['storage', 'scripting', 'tabs', 'notifications', 'clipboardWrite', 'activeTab'],
+    permissions: ['scripting', 'activeTab'],
     options_page: 'options/index.html',
     background: {
       service_worker: 'background.iife.js',
@@ -59,7 +59,7 @@ const manifest = deepmerge(
         run_at: 'document_idle',
       },
       {
-        matches: ['http://*/*', 'https://*/*', '<all_urls>'],
+        matches: ['https://www.reddit.com/*', 'https://chat.openai.com/*', 'https://chatgpt.com/*'],
         css: ['content.css'], // public folder
       },
     ],
@@ -71,7 +71,7 @@ const manifest = deepmerge(
       },
     ],
   },
-  !isFirefox && sidePanelConfig,
+  !isFirefox, // && sidePanelConfig,
 );
 
 export default manifest;

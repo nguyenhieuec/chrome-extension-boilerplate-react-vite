@@ -1,8 +1,5 @@
-import { toggleTheme } from '@src/toggleTheme';
-
 console.log('content script loaded');
 
-void toggleTheme();
 /**
  * Handles inserting content into ChatGPT's prompt textarea and sending the message.
  * @param content The text to insert and send.
